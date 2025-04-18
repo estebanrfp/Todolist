@@ -1,156 +1,96 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Elementos del DOM
-    const taskInput = document.getElementById('task-input');
-    const addButton = document.getElementById('add-button');
-    const taskList = document.getElementById('task-list');
-    const tasksCount = document.getElementById('tasks-count');
-    const clearCompletedBtn = document.getElementById('clear-completed');
-    const filterButtons = document.querySelectorAll('.filter');
-    
-    // Estado de la aplicación
-    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    let currentFilter = 'all';
-    
-    // Función para guardar tareas en localStorage
-    const saveTasks = () => {
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-    };
-    
-    // Función para actualizar el contador de tareas
-    const updateTasksCount = () => {
-        const pendingTasks = tasks.filter(task => !task.completed).length;
-        tasksCount.textContent = `${pendingTasks} ${pendingTasks === 1 ? 'tarea pendiente' : 'tareas pendientes'}`;
-    };
-    
-    // Función para crear un elemento de tarea
-    const createTaskElement = (task) => {
-        const li = document.createElement('li');
-        li.className = `task-item ${task.completed ? 'completed' : ''}`;
-        li.dataset.id = task.id;
-        
-        const checkIcon = document.createElement('i');
-        checkIcon.className = `task-check fas ${task.completed ? 'fa-check-circle' : 'fa-circle'}`;
-        checkIcon.addEventListener('click', () => toggleTaskStatus(task.id));
-        
-        const taskText = document.createElement('span');
-        taskText.className = 'task-text';
-        taskText.textContent = task.text;
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-task';
-        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-        deleteBtn.addEventListener('click', () => deleteTask(task.id));
-        
-        li.appendChild(checkIcon);
-        li.appendChild(taskText);
-        li.appendChild(deleteBtn);
-        
-        return li;
-    };
-    
-    // Función para renderizar las tareas
-    const renderTasks = () => {
-        // Limpiar la lista primero
-        taskList.innerHTML = '';
-        
-        // Filtrar tareas según el filtro actual
-        let filteredTasks = tasks;
-        if (currentFilter === 'active') {
-            filteredTasks = tasks.filter(task => !task.completed);
-        } else if (currentFilter === 'completed') {
-            filteredTasks = tasks.filter(task => task.completed);
-        }
-        
-        // Crear y añadir elementos de tarea
-        filteredTasks.forEach(task => {
-            const taskElement = createTaskElement(task);
-            taskList.appendChild(taskElement);
-        });
-        
-        // Actualizar contador
-        updateTasksCount();
-    };
-    
-    // Función para añadir una nueva tarea
-    const addTask = () => {
-        const text = taskInput.value.trim();
-        if (text) {
-            const newTask = {
-                id: Date.now().toString(),
-                text: text,
-                completed: false
-            };
-            
-            tasks.push(newTask);
-            saveTasks();
-            renderTasks();
-            
-            // Limpiar el input
-            taskInput.value = '';
-            taskInput.focus();
-        }
-    };
-    
-    // Función para cambiar el estado de una tarea
-    const toggleTaskStatus = (id) => {
-        tasks = tasks.map(task => {
-            if (task.id === id) {
-                return {...task, completed: !task.completed};
-            }
-            return task;
-        });
-        
-        saveTasks();
-        renderTasks();
-    };
-    
-    // Función para eliminar una tarea
-    const deleteTask = (id) => {
-        tasks = tasks.filter(task => task.id !== id);
-        saveTasks();
-        renderTasks();
-    };
-    
-    // Función para limpiar tareas completadas
-    const clearCompletedTasks = () => {
-        tasks = tasks.filter(task => !task.completed);
-        saveTasks();
-        renderTasks();
-    };
-    
-    // Función para cambiar el filtro activo
-    const changeFilter = (filter) => {
-        currentFilter = filter;
-        
-        // Actualizar clases de los botones de filtro
-        filterButtons.forEach(btn => {
-            if (btn.dataset.filter === filter) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-        
-        renderTasks();
-    };
-    
-    // Event listeners
-    addButton.addEventListener('click', addTask);
-    
-    taskInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            addTask();
-        }
-    });
-    
-    clearCompletedBtn.addEventListener('click', clearCompletedTasks);
-    
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            changeFilter(btn.dataset.filter);
-        });
-    });
-    
-    // Inicializar la aplicación
+import { GraphDB } from "https://cdn.jsdelivr.net/npm/gdb-p2p@0/+esm";
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const taskInput = document.getElementById('task-input');
+  const addButton = document.getElementById('add-button');
+  const taskList = document.getElementById('task-list');
+  const tasksCount = document.getElementById('tasks-count');
+  const clearCompletedBtn = document.getElementById('clear-completed');
+  const filterButtons = document.querySelectorAll('.filter');
+
+  const db = new GraphDB('todoList');
+  const taskCache = new Map();
+  let currentFilter = 'all';
+
+  const updateTasksCount = () => {
+    const count = [...taskCache.values()].filter(t => !t.completed).length;
+    tasksCount.textContent = `${count} ${count === 1 ? 'tarea pendiente' : 'tareas pendientes'}`;
+  };
+
+  const createTaskElement = (id, task) => {
+    const li = document.createElement('li');
+    li.className = `task-item ${task.completed ? 'completed' : ''}`;
+    li.dataset.id = id;
+
+    const checkIcon = document.createElement('i');
+    checkIcon.className = `task-check fas ${task.completed ? 'fa-check-circle' : 'fa-circle'}`;
+    checkIcon.onclick = () => toggleTaskStatus(id);
+
+    const taskText = document.createElement('span');
+    taskText.className = 'task-text';
+    taskText.textContent = task.text;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-task';
+    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    deleteBtn.onclick = () => db.remove(id);
+
+    li.append(checkIcon, taskText, deleteBtn);
+    return li;
+  };
+
+  const renderTasks = () => {
+    taskList.innerHTML = '';
+    [...taskCache.entries()]
+      .filter(([_, task]) =>
+        currentFilter === 'active' ? !task.completed :
+        currentFilter === 'completed' ? task.completed : true
+      )
+      .forEach(([id, task]) => taskList.appendChild(createTaskElement(id, task)));
+
+    updateTasksCount();
+  };
+
+  const addTask = async () => {
+    const text = taskInput.value.trim();
+    if (!text) return;
+    await db.put({ text, completed: false });
+    taskInput.value = '';
+    taskInput.focus();
+  };
+
+  const toggleTaskStatus = async (id) => {
+    const task = taskCache.get(id);
+    if (!task) return;
+    await db.put({ ...task, completed: !task.completed }, id);
+  };
+
+  const clearCompletedTasks = async () => {
+    for (const [id, task] of taskCache.entries()) {
+      if (task.completed) await db.remove(id);
+    }
+  };
+
+  const changeFilter = (filter) => {
+    currentFilter = filter;
+    filterButtons.forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.filter === filter)
+    );
     renderTasks();
+  };
+
+  // Reacción en tiempo real a la base de datos
+  await db.map(({ id, value, action }) => {
+    if (['added', 'initial', 'updated'].includes(action)) taskCache.set(id, value);
+    if (action === 'removed') taskCache.delete(id);
+    renderTasks();
+  });
+
+  // Event Listeners
+  addButton.onclick = addTask;
+  taskInput.onkeydown = (e) => { if (e.key === 'Enter') addTask(); };
+  clearCompletedBtn.onclick = clearCompletedTasks;
+  filterButtons.forEach(btn =>
+    btn.onclick = () => changeFilter(btn.dataset.filter)
+  );
 });
