@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TodoList App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>TodoList App</h1>
+        <div class="todo-app">
+            <div class="input-section">
+                <input type="text" id="task-input" placeholder="Añadir una nueva tarea...">
+                <button id="add-button"><i class="fas fa-plus"></i></button>
+            </div>
+            <div class="filters">
+                <button class="filter active" data-filter="all">Todas</button>
+                <button class="filter" data-filter="active">Activas</button>
+                <button class="filter" data-filter="completed">Completadas</button>
+            </div>
+            <ul id="task-list">
+                <!-- Las tareas se añadirán aquí dinámicamente -->
+            </ul>
+            <div class="clear-section">
+                <span id="tasks-count">0 tareas pendientes</span>
+                <button id="clear-completed">Limpiar completadas</button>
+            </div>
+        </div>
+        <footer>
+            <p>Creado para <a href="https://github.com/estebanrfp">estebanrfp</a> | 2025</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
