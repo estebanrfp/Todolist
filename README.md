@@ -35,7 +35,7 @@ A simple task list application built with HTML, CSS, and GraphDB in vanilla Java
 
 ## Demo
 
-You can view a live demo of the application at: [GitHub Pages](https://estebanrfp.github.io/todolist/)
+You can view a live demo of the application at: [GitHub Pages](https://estebanrfp.github.io/Todolist/)
 
 ## License
 
